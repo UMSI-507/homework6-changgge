@@ -96,8 +96,13 @@ def construct_unique_key(baseurl, params):
     string
         the unique key as a string
     '''
-    #TODO Implement function
-    pass
+    param_strings = []
+    connector = '_'
+    for k in params.keys():
+        param_strings.append(f'{k}_{params[k]}')
+    param_strings.sort()
+    unique_key = baseurl + connector +  connector.join(param_strings)
+    return unique_key
 
 
 def make_request(baseurl, params):
@@ -116,8 +121,8 @@ def make_request(baseurl, params):
         the data returned from making the request in the form of 
         a dictionary
     '''
-    #TODO Implement function
-    pass
+    response = requests.get(baseurl, params=params, auth=oauth)
+    return response.json()
 
 
 def make_request_with_cache(baseurl, hashtag, count):
@@ -148,9 +153,18 @@ def make_request_with_cache(baseurl, hashtag, count):
         the results of the query as a dictionary loaded from cache
         JSON
     '''
-    #TODO Implement function
-    pass
+    CACHE_DICT = open_cache()
 
+    params = {'q': hashtag, 'count': count}
+    request_key = construct_unique_key(baseurl, params)
+    if request_key in CACHE_DICT.keys():
+        print("fetching cached data")
+        return CACHE_DICT[request_key]
+    else:
+        print("making new request")
+        CACHE_DICT[request_key] = make_request(baseurl, params)
+        save_cache(CACHE_DICT)
+        return CACHE_DICT[request_key]
 
 def find_most_common_cooccurring_hashtag(tweet_data, hashtag_to_ignore):
     ''' Finds the hashtag that most commonly co-occurs with the hashtag
@@ -171,8 +185,28 @@ def find_most_common_cooccurring_hashtag(tweet_data, hashtag_to_ignore):
         queried in make_request_with_cache()
 
     '''
-    # TODO: Implement function 
-    pass
+    hashtag_to_ignore = hashtag_to_ignore.lower().lstrip("#")
+    hashtags = []
+    val_list = []
+    for val in tweet_data.values():
+        val_list.append(val)
+        status = val_list[0]
+        for i in status:
+            for v in i["entities"]["hashtags"]:
+                if v["text"].lower() != hashtag_to_ignore:
+                    hashtags.append(v['text'].lower())
+    print(hashtags)
+
+    counter = 0
+    string = hashtags[0] 
+      
+    for i in hashtags: 
+        curr_frequency = hashtags.count(i) 
+        if(curr_frequency> counter): 
+            counter = curr_frequency 
+            string = i 
+  
+    return string 
     ''' Hint: In case you're confused about the hashtag_to_ignore 
     parameter, we want to ignore the hashtag we queried because it would 
     definitely be the most occurring hashtag, and we're trying to find 
@@ -190,7 +224,7 @@ if __name__ == "__main__":
         print("You need to fill in ACCESS_TOKEN and ACCESS_TOKEN_SECRET in secret_data.py.")
         exit()
 
-    CACHE_DICT = open_cache()
+    
 
     baseurl = "https://api.twitter.com/1.1/search/tweets.json"
     hashtag = "#2020election"
